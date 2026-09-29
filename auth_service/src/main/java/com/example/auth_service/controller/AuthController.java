@@ -1,6 +1,7 @@
 package com.example.auth_service.controller;
 
 import com.example.auth_service.dto.UserRegistrationDto;
+import com.example.auth_service.dto.LoginDto;
 import com.example.auth_service.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,5 +25,11 @@ public class AuthController {
     public ResponseEntity<String> register(@Valid @RequestBody UserRegistrationDto dto) {
         userService.createUser(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body("Người dùng đã được tạo thành công");
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<java.util.Map<String, String>> login(@Valid @RequestBody LoginDto dto) {
+        String token = userService.loginUser(dto);
+        return ResponseEntity.ok(java.util.Map.of("access_token", token));
     }
 }

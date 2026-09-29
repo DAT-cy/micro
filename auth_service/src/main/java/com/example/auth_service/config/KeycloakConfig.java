@@ -22,6 +22,22 @@ public class KeycloakConfig {
     @Value("${keycloak.credentials.secret}")
     private String clientSecret;
 
+    public String getServerUrl() {
+        return serverUrl;
+    }
+
+    public String getRealm() {
+        return realm;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public String getClientSecret() {
+        return clientSecret;
+    }
+
     @Bean
     public Keycloak keycloak() {
         return KeycloakBuilder.builder()

@@ -26,7 +26,7 @@ public class SecurityConfig {
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/v1/products/**").hasAuthority("ROLE_USER")
                         .pathMatchers("/v1/orders/**").hasAuthority("ROLE_USER")
-                        .pathMatchers("/auth/**").permitAll()
+                        .pathMatchers("/api/auth/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth

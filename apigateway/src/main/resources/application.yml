@@ -10,7 +10,7 @@ spring:
       resourceserver:
         jwt:
           # Keycloak chạy ở cổng 8080 (docker-compose). Thay TEN_REALM bằng tên realm thật
-          issuer-uri: http://localhost:8080/realms/TEN_REALM
+          issuer-uri: http://localhost:8080/realms/micro
 
   cloud:
     gateway:
@@ -28,7 +28,7 @@ spring:
                 - Path=/v1/orders/**
 
             - id: auth-service
-              uri: lb://auth-service         # = spring.application.name của auth-service
+              uri: lb://auth-service
               predicates:
                 - Path=/auth/**
 
