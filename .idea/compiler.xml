@@ -7,8 +7,18 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="apigateway" />
+        <module name="discovery-service" />
       </profile>
-      <profile name="Annotation profile for order-service" enabled="true">
+      <profile name="Annotation profile for auth_service" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
+        </processorPath>
+        <module name="auth_service" />
+      </profile>
+      <profile name="Annotation profile for product-service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -20,21 +30,13 @@
         <module name="product-service" />
         <module name="order-service" />
       </profile>
-      <profile name="Annotation profile for auth_service" enabled="true">
-        <sourceOutputDir name="target/generated-sources/annotations" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <processorPath useClasspath="false">
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
-        </processorPath>
-        <module name="auth_service" />
-      </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="apigateway" options="-parameters" />
       <module name="auth_service" options="-parameters" />
+      <module name="discovery-service" options="-parameters" />
       <module name="order-service" options="-parameters" />
       <module name="product-service" options="-parameters" />
     </option>

@@ -1,9 +1,16 @@
 server:
-  port: 8082
+  port: 8087
 
 spring:
   application:
-    name: apigateway
+    name: api-gateway
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Keycloak chạy ở cổng 8080 (docker-compose). Thay TEN_REALM bằng tên realm thật
+          issuer-uri: http://localhost:8080/realms/TEN_REALM
 
   cloud:
     gateway:
@@ -11,17 +18,27 @@ spring:
         webflux:
           routes:
             - id: product-service
-              uri: lb://product-service
+              uri: lb://product-service      # = spring.application.name của product-service
               predicates:
                 - Path=/v1/products/**
+
             - id: order-service
-              uri: lb://order-service
+              uri: lb://order-service        # = spring.application.name của order-service
               predicates:
                 - Path=/v1/orders/**
+
+            - id: auth-service
+              uri: lb://auth-service         # = spring.application.name của auth-service
+              predicates:
+                - Path=/auth/**
+
 eureka:
   client:
+    enabled: true
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://localhost:8761/eureka
+
 logging:
   level:
-    org.springframework.cloud.gateway: debug
+    org.springframework.security: DEBUG
+    org.springframework.cloud.gateway: INFO

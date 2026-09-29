@@ -4,9 +4,17 @@ spring:
   application:
     name: auth-service
 
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.cloud.client.ip-address}:${spring.application.name}:${server.port}
+
 keycloak:
   auth-server-url: http://localhost:8080
-  realm: backend
-  resource: backend
+  realm: micro
+  resource: micro
   credentials:
-    secret: QZrCvI7ZoLFkHehU65nT9HmH9Uu9CFp9
+    secret: IVXZEoTZOPstVJb4J9EoJoLSL2wUqg6R

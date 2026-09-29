@@ -1,0 +1,17 @@
+server:
+  port: 8761
+
+spring:
+  application:
+    name: discovery-server
+
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    register-with-eureka: false   # server không tự đăng ký vào chính nó
+    fetch-registry: false         # server không tải danh sách từ server khác
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+  server:
+    enable-self-preservation: false   # chỉ dùng khi dev: service tắt sẽ bị xóa nhanh hơn
