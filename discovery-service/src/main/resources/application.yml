@@ -14,4 +14,4 @@ eureka:
     service-url:
       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
   server:
-    enable-self-preservation: false   # chỉ dùng khi dev: service tắt sẽ bị xóa nhanh hơn
+    enable-self-preservation: true   # chỉ dùng khi dev: service tắt sẽ bị xóa nhanh hơn

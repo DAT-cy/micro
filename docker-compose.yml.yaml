@@ -45,6 +45,30 @@ services:
       start_period: 30s
     command: --default-authentication-plugin=mysql_native_password
 
+
+  mysql-payment:
+    image: mysql:8.0
+    container_name: payment-service-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_DATABASE: payment_service
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: "apppass123"
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_payment_data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: --default-authentication-plugin=mysql_native_password
+
   # ===== MySQL riêng cho Keycloak =====
   mysql-keycloak:
     image: mysql:8.0
@@ -217,6 +241,7 @@ networks:
 
 volumes:
   mysql_data:
+  mysql_payment_data:
   mysql_order_data:
   mysql_keycloak_data:
   kafka-data:
