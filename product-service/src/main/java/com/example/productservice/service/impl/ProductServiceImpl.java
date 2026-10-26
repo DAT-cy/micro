@@ -1,6 +1,7 @@
 package com.example.productservice.service.impl;
 
 import com.example.productservice.dto.*;
+import com.example.productservice.document.ProductDocument;
 import com.example.productservice.dto.request.CreateProductReq;
 import com.example.productservice.dto.request.ProductFilter;
 import com.example.productservice.entity.Category;
@@ -9,6 +10,7 @@ import com.example.productservice.exception.ApplicationException;
 import com.example.productservice.mapper.ProductMapper;
 import com.example.productservice.repository.CategoryRepository;
 import com.example.productservice.repository.ProductRepository;
+import com.example.productservice.repository.ProductSearchRepository;
 import com.example.productservice.service.ProductService;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 
@@ -30,6 +33,7 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ProductSearchRepository productSearchRepository;
 
 
     @Override
@@ -39,15 +43,17 @@ public class ProductServiceImpl implements ProductService {
             throw new ApplicationException("category not found");
         }
         Product createProduct = productMapper.mapProduct(createProductReq);
-        productRepository.save(createProduct);
-        return productRepository.save(createProduct);
+        Product savedProduct = productRepository.save(createProduct);
+        productSearchRepository.save(toDocument(savedProduct));
+        return savedProduct;
     }
 
     @Override
     public List<ProductDto> search(ProductFilter productFilter) {
-        List<Product> productList = productRepository.findAllById(productFilter.getIds());
-        return productList.stream()
-                .map(productMapper::mapDto)
+        List<ProductDocument> documents = new ArrayList<>();
+        productSearchRepository.findAllById(productFilter.getIds()).forEach(documents::add);
+        return documents.stream()
+                .map(this::toDto)
                 .toList();
     }
 
@@ -75,7 +81,18 @@ public class ProductServiceImpl implements ProductService {
             }
             product.setStock(product.getStock() - orderItemDto.getQuantity());
         }
+        productSearchRepository.saveAll(products.stream().map(this::toDocument).toList());
         return confirmOrder(orderDto);
+    }
+
+    private ProductDocument toDocument(Product product) {
+        return new ProductDocument(product.getId(), product.getName(), product.getPrice(),
+                product.getStock(), product.getCategoryId());
+    }
+
+    private ProductDto toDto(ProductDocument document) {
+        return new ProductDto(document.getId(), document.getName(), document.getPrice(),
+                document.getStock(), document.getCategoryId());
     }
     public OrderConfirm confirmOrder(OrderDto order) {
         try {
