@@ -1,67 +1,47 @@
 package com.example.orderservice.entity;
 
+import com.example.orderservice.dto.OutboxStatus;
 import jakarta.persistence.*;
 
 import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@Table(name = "outbox_events")
+@Table(name = "outbox_event")
 @Getter
+@Setter
 @NoArgsConstructor
 public class OutboxEvent {
-    public enum Status { PENDING, PUBLISHED }
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private String id;
 
-    @Column(nullable = false, length = 100)
     private String topic;
-
-    @Column(name = "event_key", nullable = false, length = 100)
     private String eventKey;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String payload;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private Status status;
+    private OutboxStatus status;
 
-    @Column(nullable = false)
-    private int publishAttempts;
+    private int retryCount;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
     private String lastError;
 
-    @Column(nullable = false, updatable = false)
     private Instant createdAt;
-
-    private Instant publishedAt;
+    private Instant sentAt;
 
     public OutboxEvent(String topic, String eventKey, String payload) {
-        this.id = UUID.randomUUID();
+        this.id = UUID.randomUUID().toString();
         this.topic = topic;
         this.eventKey = eventKey;
         this.payload = payload;
-        this.status = Status.PENDING;
+        this.status = OutboxStatus.PENDING;
         this.createdAt = Instant.now();
     }
-
-    public void markPublished() {
-        this.status = Status.PUBLISHED;
-        this.publishedAt = Instant.now();
-        this.lastError = null;
-    }
-
-    public void markPublishFailed(Exception exception) {
-        this.publishAttempts++;
-        this.lastError = exception.getMessage() == null ? exception.getClass().getSimpleName()
-                : exception.getMessage().substring(0, Math.min(1000, exception.getMessage().length()));
-    }
-
 }

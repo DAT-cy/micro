@@ -72,7 +72,6 @@ services:
   # ===== MySQL riêng cho Keycloak =====
   mysql-keycloak:
     image: mysql:8.0
-    container_name: keycloak-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: "123456"
@@ -186,7 +185,7 @@ services:
 
   elasticsearch:
     container_name: vti-elasticsearch
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.8
     restart: unless-stopped
     environment:
       discovery.type: single-node
@@ -201,13 +200,13 @@ services:
       - "9200:9200"
       - "9300:9300"
     volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
+      - elasticsearch_data_v9:/usr/share/elasticsearch/data
     networks:
       - app-network
 
   logstash:
     container_name: vti-logstash
-    image: docker.elastic.co/logstash/logstash:7.17.10
+    image: docker.elastic.co/logstash/logstash:9.4.8
     restart: unless-stopped
     environment:
       LS_JAVA_OPTS: "-Xms256m -Xmx256m"
@@ -224,7 +223,7 @@ services:
 
   kibana:
     container_name: kb-container
-    image: docker.elastic.co/kibana/kibana:7.17.10
+    image: docker.elastic.co/kibana/kibana:9.4.8
     restart: unless-stopped
     environment:
       ELASTICSEARCH_HOSTS: http://vti-elasticsearch:9200
@@ -248,3 +247,4 @@ volumes:
   redis-data:
   redis-insight-data:
   elasticsearch_data:
+  elasticsearch_data_v9:

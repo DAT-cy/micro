@@ -12,6 +12,7 @@ import com.example.orderservice.mapper.OrderItemMapper;
 import com.example.orderservice.mapper.OrderMapper;
 import com.example.orderservice.repository.OrderItemRepository;
 import com.example.orderservice.repository.OrderRepository;
+import com.example.orderservice.repository.OutBoxEventRepository;
 import com.example.orderservice.service.OrderService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderItemMapper orderItemMapper;
     private final ProductClient productClient;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final OutboxPublisher outboxPublisher;
 
     @Override
     @Transactional
@@ -87,9 +89,7 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
         OrderDto response = orderMapper.mapDto(savedOrder);
         response.setOrderItems(orderItemMapper.mapDtoList(savedItems));
-
-        kafkaTemplate.send("order-created",response);
-        log.info("publish new order order-created");
+        outboxPublisher.publish("order-created", response.getId(), response);
         return response;
     }
 
