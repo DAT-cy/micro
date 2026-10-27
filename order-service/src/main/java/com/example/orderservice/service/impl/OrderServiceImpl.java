@@ -148,11 +148,36 @@ public class OrderServiceImpl implements OrderService {
         return true;
     }
 
+
     @Override
-    public OrderConfirm orderConfirm(OrderConfirm orderConfirm){
-        Order order = validateOrder(orderConfirm.getOrderId());
-        order.setStatus(orderConfirm.getStatus());
-        orderRepository.save(order);
+    @Transactional
+    public OrderConfirm orderConfirm(String orderId, OrderConfirm orderConfirm) {
+        Order order = validateOrder(orderId);
+
+        if (OrderStatus.CONFIRMED.name().equals(orderConfirm.getStatus())) {
+            order.setStatus(OrderStatus.CONFIRMED.name());
+            orderRepository.save(order);
+            outboxPublisher.publishConfirm(
+                    "order-confirmed",
+                    order.getId(),
+                    order
+            );
+
+        } else if (OrderStatus.CANCELLED.name().equals(orderConfirm.getStatus())) {
+            order.setStatus(OrderStatus.CANCELLED.name());
+            orderRepository.save(order);
+            outboxPublisher.publishConfirm(
+                    "order-cancelled",
+                    order.getId(),
+                    order
+            );
+        } else {
+            throw new IllegalArgumentException(
+                    "Unsupported order status: " + orderConfirm.getStatus()
+            );
+        }
+
         return orderConfirm;
     }
+
 }

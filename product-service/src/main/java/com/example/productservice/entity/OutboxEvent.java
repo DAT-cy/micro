@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class OutboxEvent {
-    public enum Status { PENDING, PUBLISHED }
+    public enum Status { PENDING, PUBLISHED, FAILED }
 
     @Id
     private UUID id;
@@ -66,5 +66,10 @@ public class OutboxEvent {
         this.publishAttempts++;
         this.lastError = exception.getMessage() == null ? exception.getClass().getSimpleName()
                 : exception.getMessage().substring(0, Math.min(1000, exception.getMessage().length()));
+    }
+
+    public void markFailed(Exception exception) {
+        markPublishFailed(exception);
+        this.status = Status.FAILED;
     }
 }

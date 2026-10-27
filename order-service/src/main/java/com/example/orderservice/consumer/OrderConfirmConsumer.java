@@ -4,6 +4,7 @@ import com.example.orderservice.dto.OrderConfirm;
 import com.example.orderservice.service.OrderService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.BackOff;
 import org.springframework.kafka.annotation.DltHandler;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -29,11 +30,12 @@ public class OrderConfirmConsumer {
                     multiplier = 2.0
             )
     )
-    public void listen(OrderConfirm orderDto) throws Exception {
+    public void listen(ConsumerRecord<String, String> record) throws Exception {
         try {
             log.info("========== BẮT ĐẦU XỬ LÝ MESSAGE ==========");
-            log.info("Nội dung order: {}", orderDto);
-            orderService.orderConfirm(orderDto);
+            log.info("Nội dung order: {}", record);
+            OrderConfirm orderConfirm = jsonMapper.readValue(record.value(), OrderConfirm.class);
+            orderService.orderConfirm(record.key(),orderConfirm);
             log.info("========== XỬ LÝ THÀNH CÔNG ==========");
         } catch (Exception e) {
             log.error("========== LỖI RỒI BẠN ƠI ==========");

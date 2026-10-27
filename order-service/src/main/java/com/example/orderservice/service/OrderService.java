@@ -15,5 +15,5 @@ public interface OrderService {
     OrderDto getOrderById(String id);
     OrderDto updateOrder(String id, UpdateOrderDto updateOrderDto);
     boolean deleteOrder(String id);
-    OrderConfirm orderConfirm(OrderConfirm orderConfirm);
+    OrderConfirm orderConfirm(String orderId , OrderConfirm orderConfirm);
 }

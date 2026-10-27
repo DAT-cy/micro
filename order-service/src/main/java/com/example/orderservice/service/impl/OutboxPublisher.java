@@ -23,4 +23,17 @@ public class OutboxPublisher {
             throw new IllegalStateException("Cannot serialize event", e);
         }
     }
+
+    @Transactional
+    public void publishConfirm(String topic, String key , Object payload) {
+        try{
+            OutboxEvent outboxEvent = new OutboxEvent();
+            outboxEvent.setTopic(topic);
+            outboxEvent.setEventKey(key);
+            outboxEvent.setEventKey(payload.toString());
+            repository.save(outboxEvent);
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot serialize event", e);
+        }
+    }
 }

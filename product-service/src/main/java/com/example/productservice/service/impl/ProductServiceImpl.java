@@ -12,10 +12,9 @@ import com.example.productservice.repository.CategoryRepository;
 import com.example.productservice.repository.ProductRepository;
 import com.example.productservice.repository.ProductSearchRepository;
 import com.example.productservice.service.ProductService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,8 +31,8 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ProductSearchRepository productSearchRepository;
+    private final OutboxPublisher outboxPublisher;
 
 
     @Override
@@ -60,29 +59,41 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public OrderConfirm updateQuantity(List<OrderItemDto> orderItemDtos , OrderDto orderDto) {
-
-        List<String> productIds = orderItemDtos.stream().map(OrderItemDto::getProductId).toList();
-
+        Map<String, Integer> quantities = orderItemDtos.stream()
+                .collect(Collectors.groupingBy(
+                        OrderItemDto::getProductId,
+                        Collectors.summingInt(OrderItemDto::getQuantity)));
+        List<String> productIds = quantities.keySet().stream().sorted().toList();
         List<Product> products = productRepository.findByIdForUpdate(productIds);
-
         Map<String, Product> productMap = products.stream().collect(
-                Collectors.toMap(
-                        Product::getId,product->product
-                )
-        );
+                Collectors.toMap(Product::getId, product -> product));
 
-        for (OrderItemDto orderItemDto : orderItemDtos) {
-            Product product = productMap.get(orderItemDto.getProductId());
-            if (product == null) {
-                throw new ApplicationException("product not found");
-            }
-            if(product.getStock() < orderItemDto.getQuantity()){
-                throw new ApplicationException("product not enough");
-            }
-            product.setStock(product.getStock() - orderItemDto.getQuantity());
+        boolean canReserve = quantities.entrySet().stream().allMatch(entry -> {
+            Product product = productMap.get(entry.getKey());
+            return product != null
+                    && entry.getValue() > 0
+                    && product.getStock() >= entry.getValue();
+        });
+
+        OrderConfirm result;
+        if (canReserve) {
+            quantities.forEach((productId, quantity) -> {
+                Product product = productMap.get(productId);
+                product.setStock(product.getStock() - quantity);
+            });
+            result = OrderConfirm.builder()
+                    .orderId(orderDto.getId())
+                    .status(OrderStatus.CONFIRMED.name())
+                    .build();
+        } else {
+            result = OrderConfirm.builder()
+                    .orderId(orderDto.getId())
+                    .status(OrderStatus.CANCELLED.name())
+                    .build();
         }
-        productSearchRepository.saveAll(products.stream().map(this::toDocument).toList());
-        return confirmOrder(orderDto);
+
+        outboxPublisher.publish("order-confirmed", orderDto.getId(), result);
+        return result;
     }
 
     private ProductDocument toDocument(Product product) {
@@ -93,24 +104,5 @@ public class ProductServiceImpl implements ProductService {
     private ProductDto toDto(ProductDocument document) {
         return new ProductDto(document.getId(), document.getName(), document.getPrice(),
                 document.getStock(), document.getCategoryId());
-    }
-    public OrderConfirm confirmOrder(OrderDto order) {
-        try {
-            OrderConfirm event = OrderConfirm.builder()
-                    .orderId(order.getId())
-                    .status(OrderStatus.CONFIRMED.name())
-                    .build();
-            kafkaTemplate.send("order-confirmed", event);
-
-            return event;
-        } catch (Exception e) {
-            OrderConfirm event = OrderConfirm.builder()
-                    .orderId(order.getId())
-                    .status(OrderStatus.CANCELLED.name())
-                    .build();
-
-            kafkaTemplate.send("order-confirmed", event);
-            return event;
-        }
     }
 }
