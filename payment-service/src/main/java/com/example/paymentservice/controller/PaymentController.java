@@ -2,7 +2,7 @@ package com.example.paymentservice.controller;
 
 import com.example.paymentservice.dto.CreatePaymentRequest;
 import com.example.paymentservice.dto.PaymentResponse;
-import com.example.paymentservice.service.PaymentService;
+import com.example.paymentservice.service.impl.PaymentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.net.URI;

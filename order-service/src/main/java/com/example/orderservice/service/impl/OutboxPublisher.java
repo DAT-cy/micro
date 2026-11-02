@@ -1,6 +1,5 @@
 package com.example.orderservice.service.impl;
 
-import com.example.orderservice.dto.OutboxStatus;
 import com.example.orderservice.entity.OutboxEvent;
 import com.example.orderservice.repository.OutBoxEventRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -25,17 +24,9 @@ public class OutboxPublisher {
         }
     }
 
-    @Transactional
-    public void publishConfirm(String topic, String key , Object payload) {
-        try{
-            OutboxEvent outboxEvent = new OutboxEvent();
-            outboxEvent.setTopic(topic);
-            outboxEvent.setEventKey(key);
-            outboxEvent.setEventKey(payload.toString());
-            outboxEvent.setStatus(OutboxStatus.PENDING);
-            repository.save(outboxEvent);
-        } catch (Exception e) {
-            throw new IllegalStateException("Cannot serialize event", e);
-        }
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishConfirm(String topic, String key, Object payload) {
+        publish(topic, key, payload);
     }
+
 }

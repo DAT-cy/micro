@@ -7,9 +7,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record PaymentResponse(UUID paymentId, String orderId, BigDecimal amount, String currency,
-                              PaymentStatus status, Instant createdAt) {
+                              String gateway, PaymentStatus status, String message, Instant createdAt) {
     public static PaymentResponse from(Payment payment) {
         return new PaymentResponse(payment.getId(), payment.getOrderId(), payment.getAmount(),
-                payment.getCurrency(), payment.getStatus(), payment.getCreatedAt());
+                payment.getCurrency(), payment.getGateway(), payment.getStatus(),
+                payment.getGatewayMessage() == null ? "Payment gateway: " + payment.getGateway()
+                        : payment.getGatewayMessage(), payment.getCreatedAt());
     }
 }

@@ -10,5 +10,6 @@ import java.math.BigDecimal;
 public record CreatePaymentRequest(
         @NotBlank @Size(max = 100) String orderId,
         @NotNull @DecimalMin(value = "0.01") BigDecimal amount,
-        @NotBlank @Pattern(regexp = "[A-Za-z]{3}") String currency) {
+        @NotBlank @Pattern(regexp = "[A-Za-z]{3}") String currency,
+        @NotBlank String gateway) {
 }

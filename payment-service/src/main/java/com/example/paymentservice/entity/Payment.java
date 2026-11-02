@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "payments")
@@ -33,12 +34,18 @@ public class Payment {
     @Column(nullable = false, length = 3)
     private String currency;
 
+    @Column(length = 30)
+    private String gateway;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private PaymentStatus status;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Transient
+    private String gatewayMessage;
 
     public Payment(String idempotencyKey, String orderId, BigDecimal amount, String currency, PaymentStatus status) {
         this.id = UUID.randomUUID();
@@ -49,4 +56,8 @@ public class Payment {
         this.status = status;
         this.createdAt = Instant.now();
     }
+
+    public void setGateway(String gateway) { this.gateway = gateway; }
+    public void setGatewayMessage(String gatewayMessage) { this.gatewayMessage = gatewayMessage; }
+    public void markSucceeded() { this.status = PaymentStatus.SUCCEEDED; }
 }

@@ -75,25 +75,33 @@ public class ProductServiceImpl implements ProductService {
                     && product.getStock() >= entry.getValue();
         });
 
-        OrderConfirm result;
+        OrderDto result = orderDto;
         if (canReserve) {
             quantities.forEach((productId, quantity) -> {
                 Product product = productMap.get(productId);
                 product.setStock(product.getStock() - quantity);
             });
-            result = OrderConfirm.builder()
-                    .orderId(orderDto.getId())
-                    .status(OrderStatus.CONFIRMED.name())
-                    .build();
+            result.setStatus("RESERVED");
+            outboxPublisher.publish("inventory-reserved", orderDto.getId(), result);
         } else {
-            result = OrderConfirm.builder()
-                    .orderId(orderDto.getId())
-                    .status(OrderStatus.CANCELLED.name())
-                    .build();
+            result.setStatus("REJECTED");
+            outboxPublisher.publish("inventory-rejected", orderDto.getId(), result);
         }
+        return OrderConfirm.builder().orderId(orderDto.getId()).status(result.getStatus()).build();
+    }
 
-        outboxPublisher.publish("order-confirmed", orderDto.getId(), result);
-        return result;
+    @Override
+    @Transactional
+    public void releaseQuantity(List<OrderItemDto> items) {
+        Map<String, Integer> quantities = items.stream().collect(Collectors.groupingBy(
+                OrderItemDto::getProductId, Collectors.summingInt(OrderItemDto::getQuantity)));
+        List<String> productIds = quantities.keySet().stream().sorted().toList();
+        List<Product> products = productRepository.findByIdForUpdate(productIds);
+        Map<String, Product> productMap = products.stream().collect(Collectors.toMap(Product::getId, p -> p));
+        quantities.forEach((productId, quantity) -> {
+            Product product = productMap.get(productId);
+            if (product != null) product.setStock(product.getStock() + quantity);
+        });
     }
 
     private ProductDocument toDocument(Product product) {

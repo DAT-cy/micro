@@ -17,10 +17,10 @@ public class OrderDto {
     private String customerId;
     private String status;
     private Double totalQuantity;
-    private int totalAmount;
+    private double totalAmount;
     private List<OrderItemDto> orderItems;
 
-    public OrderDto(String id, String customerId, String status, int totalAmount) {
+    public OrderDto(String id, String customerId, String status, double totalAmount) {
         this.id = id;
         this.customerId = customerId;
         this.status = status;

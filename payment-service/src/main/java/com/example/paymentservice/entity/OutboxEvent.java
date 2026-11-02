@@ -12,10 +12,12 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "outbox_events")
 @Getter
+@Setter
 @NoArgsConstructor
 public class OutboxEvent {
     @Id
@@ -55,5 +57,19 @@ public class OutboxEvent {
         this.status = OutboxStatus.PENDING;
         this.publishAttempts = 0;
         this.createdAt = Instant.now();
+    }
+
+    public void markPublished() {
+        this.status = OutboxStatus.PUBLISHED;
+        this.publishedAt = Instant.now();
+    }
+
+    public boolean markPublishFailed() {
+        this.publishAttempts++;
+        if (this.publishAttempts >= 5) {
+            this.status = OutboxStatus.FAILED;
+            return true;
+        }
+        return false;
     }
 }

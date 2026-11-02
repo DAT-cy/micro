@@ -16,4 +16,5 @@ public interface ProductService {
     List<ProductDto> search(ProductFilter productFilter);
 
     OrderConfirm updateQuantity(List<OrderItemDto> orderItemDtos , OrderDto orderDto);
+    void releaseQuantity(List<OrderItemDto> orderItemDtos);
 }
