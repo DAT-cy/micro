@@ -60,4 +60,5 @@ public class Payment {
     public void setGateway(String gateway) { this.gateway = gateway; }
     public void setGatewayMessage(String gatewayMessage) { this.gatewayMessage = gatewayMessage; }
     public void markSucceeded() { this.status = PaymentStatus.SUCCEEDED; }
+    public void markFailed() { this.status = PaymentStatus.FAILED; }
 }

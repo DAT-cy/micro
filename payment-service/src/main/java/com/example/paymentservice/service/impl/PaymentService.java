@@ -23,20 +23,28 @@ public class PaymentService {
 
     @Transactional
     public Payment create(String idempotencyKey, CreatePaymentRequest request) {
-        PaymentProcessor processor = processorResolver.resolve(request.gateway());
+        return createPayment(idempotencyKey, request, false);
+    }
+
+    @Transactional
+    public Payment createForSaga(String idempotencyKey, CreatePaymentRequest request) {
+        return createPayment(idempotencyKey, request, true);
+    }
+
+    private Payment createPayment(String idempotencyKey, CreatePaymentRequest request, boolean captureFailure) {
         var existing = payments.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             Payment payment = existing.get();
             if (!payment.getOrderId().equals(request.orderId())
                     || payment.getAmount().compareTo(request.amount()) != 0
                     || !payment.getCurrency().equalsIgnoreCase(request.currency())
-                    || !processor.gatewayName().equals(payment.getGateway())) {
+                    || !request.gateway().equalsIgnoreCase(payment.getGateway())) {
                 throw new IllegalArgumentException("Idempotency-Key was already used with a different payment");
             }
-            payment.setGatewayMessage("Payment gateway selected: " + processor.processPayment());
             return payment;
         }
 
+        PaymentProcessor processor = processorResolver.resolve(request.gateway());
         Payment payment = new Payment(
                 idempotencyKey,
                 request.orderId(),
@@ -44,13 +52,23 @@ public class PaymentService {
                 request.currency().toUpperCase(),
                 com.example.paymentservice.enums.PaymentStatus.PROCESSING);
         payment.setGateway(processor.gatewayName());
-        payment.setGatewayMessage("Payment gateway selected: " + processor.processPayment());
-        payment.markSucceeded();
         try {
-            return payments.saveAndFlush(payment);
+            payments.saveAndFlush(payment);
         } catch (DataIntegrityViolationException race) {
             return payments.findByIdempotencyKey(idempotencyKey).orElseThrow(() -> race);
         }
+
+        try {
+            payment.setGatewayMessage("Payment gateway selected: " + processor.processPayment());
+            payment.markSucceeded();
+        } catch (RuntimeException gatewayFailure) {
+            if (!captureFailure) throw gatewayFailure;
+            payment.markFailed();
+            payment.setGatewayMessage(gatewayFailure.getMessage() == null
+                    ? gatewayFailure.getClass().getSimpleName()
+                    : gatewayFailure.getMessage());
+        }
+        return payments.save(payment);
     }
 
     @Transactional(readOnly = true)

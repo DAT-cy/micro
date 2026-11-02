@@ -24,7 +24,7 @@ public class OrderCreateConsumer {
     private final RedissonClient redissonClient;
 
     @KafkaListener(topics = "order-created")
-    public void listen(ConsumerRecord<String, String> record) {
+    public void listenChoreography(ConsumerRecord<String, String> record) {
         process(record.value(), false);
     }
 

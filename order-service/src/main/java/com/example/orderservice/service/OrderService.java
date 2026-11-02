@@ -10,7 +10,8 @@ import java.awt.print.Pageable;
 import java.util.List;
 
 public interface OrderService {
-    OrderDto createOrder(CreateOrderDto createOrderDto);
+    OrderDto createOrder(CreateOrderDto createOrderDto, String idempotencyKey);
+    OrderDto createOrchestratedOrder(CreateOrderDto createOrderDto, String idempotencyKey);
     Page<OrderDto> getAllOrder(Integer page , Integer size);
     OrderDto getOrderById(String id);
     OrderDto updateOrder(String id, UpdateOrderDto updateOrderDto);

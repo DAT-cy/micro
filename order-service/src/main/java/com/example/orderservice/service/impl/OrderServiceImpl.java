@@ -13,6 +13,12 @@ import com.example.orderservice.mapper.OrderMapper;
 import com.example.orderservice.repository.OrderItemRepository;
 import com.example.orderservice.repository.OrderRepository;
 import com.example.orderservice.repository.OutBoxEventRepository;
+import com.example.orderservice.saga.entity.SagaInstance;
+import com.example.orderservice.saga.entity.SagaStep;
+import com.example.orderservice.saga.enums.SagaStatus;
+import com.example.orderservice.saga.enums.SagaStepStatus;
+import com.example.orderservice.saga.repository.SagaInstanceRepository;
+import com.example.orderservice.saga.repository.SagaStepRepository;
 import com.example.orderservice.service.OrderService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -38,10 +44,28 @@ public class OrderServiceImpl implements OrderService {
     private final ProductClient productClient;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final OutboxPublisher outboxPublisher;
+    private final SagaCommandPublisher sagaCommandPublisher;
+    private final SagaInstanceRepository sagaInstanceRepository;
+    private final SagaStepRepository sagaStepRepository;
 
     @Override
     @Transactional
-    public OrderDto createOrder(CreateOrderDto createOrderDto) {
+    public OrderDto createOrder(CreateOrderDto createOrderDto, String idempotencyKey) {
+        return createOrder(createOrderDto, idempotencyKey, false);
+    }
+
+    @Transactional
+    public OrderDto createOrchestratedOrder(CreateOrderDto createOrderDto, String idempotencyKey) {
+        return createOrder(createOrderDto, idempotencyKey, true);
+    }
+
+    private OrderDto createOrder(CreateOrderDto createOrderDto, String idempotencyKey, boolean orchestrated) {
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            Optional<Order> existing = orderRepository.findByIdempotencyKey(idempotencyKey);
+            if (existing.isPresent()) {
+                return getOrderById(existing.get().getId());
+            }
+        }
 
         List<String> ids = createOrderDto.getOrderItems().stream().map(CreateOrderItemDto::getProductId).distinct().toList();
 
@@ -55,6 +79,7 @@ public class OrderServiceImpl implements OrderService {
         );
         Order order = orderMapper.mapEntity(createOrderDto);
         order.setStatus(OrderStatus.PENDING.name());
+        order.setIdempotencyKey(idempotencyKey == null || idempotencyKey.isBlank() ? null : idempotencyKey);
         Order savedOrder = orderRepository.save(order);
 
         List<OrderItem> list = new ArrayList<>();
@@ -66,7 +91,10 @@ public class OrderServiceImpl implements OrderService {
             if(productDto == null){
                 throw new ApplicationException("sản phẩm " + createOrderItemDto.getProductId() + "không tồn tại" );
             }
-            if(createOrderItemDto.getQuantity() > productDto.getStock()){
+            if (createOrderItemDto.getQuantity() <= 0) {
+                throw new ApplicationException("Product quantity must be greater than zero");
+            }
+            if(!orchestrated && createOrderItemDto.getQuantity() > productDto.getStock()){
                 throw new ApplicationException("Sẩn phẩm " + createOrderItemDto.getQuantity() + "vượt quá trong kho" );
             }
             OrderItem orderItem = OrderItem.builder()
@@ -89,7 +117,26 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
         OrderDto response = orderMapper.mapDto(savedOrder);
         response.setOrderItems(orderItemMapper.mapDtoList(savedItems));
-        outboxPublisher.publish("order-created", response.getId(), response);
+        if (orchestrated) {
+            SagaInstance saga = new SagaInstance();
+            saga.setOrderId(UUID.fromString(savedOrder.getId()));
+            saga.setStatus(SagaStatus.RUNNING);
+            saga.setCurrentStep("RESERVE_STOCK");
+            SagaInstance savedSaga = sagaInstanceRepository.save(saga);
+
+            SagaStep reserveStock = new SagaStep();
+            UUID commandId = UUID.randomUUID();
+            reserveStock.setSagaId(savedSaga.getId());
+            reserveStock.setStepName("RESERVE_STOCK");
+            reserveStock.setCommandId(commandId);
+            reserveStock.setStatus(SagaStepStatus.PENDING);
+            sagaStepRepository.save(reserveStock);
+
+            sagaCommandPublisher.publishReserveStock(savedSaga.getId(), response,
+                    orderItemMapper.mapDtoList(savedItems), commandId);
+        } else {
+            outboxPublisher.publish("order-created", response.getId(), response);
+        }
         return response;
     }
 

@@ -26,9 +26,11 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
-    public ResponseEntity<BaseResponse<OrderDto>> createOrder(@RequestBody CreateOrderDto createOrderDto){
+    public ResponseEntity<BaseResponse<OrderDto>> createOrder(
+            @RequestBody CreateOrderDto createOrderDto,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         return ResponseEntity.ok(
-                new BaseResponse<>(orderService.createOrder(createOrderDto),"created")
+                new BaseResponse<>(orderService.createOrder(createOrderDto, idempotencyKey),"created")
         );
     }
 

@@ -18,6 +18,8 @@ public class Order extends BaseEntity {
     private String id ;
     private String customerId;
     private String status;
+    @Column(unique = true)
+    private String idempotencyKey;
     private double totalAmount;
     private Integer totalQuantity;
 }
